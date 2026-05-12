@@ -4,7 +4,6 @@ pipeline {
   environment {
     IMAGE_NAME = 'trminh06/taskmanager'
     REPORTS    = 'reports'
-    SONAR_TOKEN = credentials("sonarcloud-token")
   }
 
   options {
