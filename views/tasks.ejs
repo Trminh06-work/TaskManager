@@ -20,22 +20,21 @@
   <main class="container">
     <section class="card">
       <h2>New task</h2>
-      <form method="POST" action="/tasks" class="task-form">
+      <form id="new-task-form" class="task-form">
         <input name="title" placeholder="Title" required>
         <input name="description" placeholder="Description (optional)">
         <input name="due_date" type="date">
         <button type="submit" class="primary">Add</button>
       </form>
+      <div id="new-task-status" class="muted small"></div>
     </section>
 
     <section class="card">
-      <h2>Your tasks (<%= tasks.length %>)</h2>
-      <% if (tasks.length === 0) { %>
-        <p class="muted">No tasks yet. Add one above.</p>
-      <% } %>
-      <ul class="task-list">
+      <h2>Your tasks (<span id="task-count"><%= tasks.length %></span>)</h2>
+      <p id="empty-msg" class="muted"<% if (tasks.length > 0) { %> hidden<% } %>>No tasks yet. Add one above.</p>
+      <ul class="task-list" id="task-list">
         <% tasks.forEach(function(t) { %>
-          <li class="task <%= t.status === 'done' ? 'task-done' : '' %>">
+          <li class="task <%= t.status === 'done' ? 'task-done' : '' %>" data-task-id="<%= t.id %>">
             <div class="task-main">
               <form method="POST" action="/tasks/<%= t.id %>/toggle" class="inline">
                 <button type="submit" class="toggle" aria-label="Toggle status">
@@ -44,21 +43,32 @@
               </form>
               <div class="task-body">
                 <strong><%= t.title %></strong>
-                <% if (t.description) { %><div class="muted"><%= t.description %></div><% } %>
+                <div class="desc-view" data-task-id="<%= t.id %>">
+                  <span class="muted desc-text <%= t.description ? '' : 'desc-empty' %>">
+                    <% if (t.description) { %><%= t.description %><% } else { %><em>No description</em><% } %>
+                  </span>
+                  <button type="button" class="link small edit-desc-btn" data-task-id="<%= t.id %>">Edit</button>
+                </div>
+                <div class="desc-edit hidden" data-task-id="<%= t.id %>">
+                  <textarea class="desc-input" rows="2"><%= t.description || '' %></textarea>
+                  <div class="desc-edit-actions">
+                    <button type="button" class="primary small save-desc-btn" data-task-id="<%= t.id %>">Save</button>
+                    <button type="button" class="small cancel-desc-btn" data-task-id="<%= t.id %>">Cancel</button>
+                    <span class="desc-status muted small" data-task-id="<%= t.id %>"></span>
+                  </div>
+                </div>
                 <% if (t.due_date) { %><div class="muted small">Due: <%= t.due_date %></div><% } %>
               </div>
             </div>
             <div class="task-actions">
               <span class="badge"><%= t.status %></span>
-              <form method="POST" action="/tasks/<%= t.id %>/delete" class="inline"
-                    onsubmit="return confirm('Delete this task?');">
-                <button type="submit" class="danger">Delete</button>
-              </form>
+              <button type="button" class="danger delete-task-btn" data-task-id="<%= t.id %>">Delete</button>
             </div>
           </li>
         <% }); %>
       </ul>
     </section>
   </main>
+  <script src="/app.js"></script>
 </body>
 </html>

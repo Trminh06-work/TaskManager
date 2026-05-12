@@ -45,6 +45,20 @@ router.post('/tasks', (req, res) => {
   res.status(201).json(task);
 });
 
+router.put('/tasks/:id/description', (req, res) => {
+  const { description } = req.body;
+  if (description === undefined) {
+    return res.status(400).json({ error: 'description field is required' });
+  }
+  const db = getDb();
+  const info = db.prepare(
+    'UPDATE tasks SET description = ? WHERE id = ? AND user_id = ?'
+  ).run(description || null, req.params.id, req.session.user.id);
+  if (info.changes === 0) return res.status(404).json({ error: 'Not found' });
+  const updated = db.prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id);
+  res.json(updated);
+});
+
 router.put('/tasks/:id', (req, res) => {
   const { title, description, status, due_date } = req.body;
   const db = getDb();

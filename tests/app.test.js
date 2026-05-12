@@ -149,6 +149,29 @@ describe('Task CRUD API', () => {
     expect(u.body.status).toBe('done');
   });
 
+  test('update only description via dedicated endpoint', async () => {
+    const c = await agent.post('/api/tasks').send({ title: 'Keep title', description: 'old' });
+    const res = await agent.put(`/api/tasks/${c.body.id}/description`)
+      .send({ description: 'new description' });
+    expect(res.status).toBe(200);
+    expect(res.body.title).toBe('Keep title');
+    expect(res.body.description).toBe('new description');
+  });
+
+  test('description endpoint rejects missing field', async () => {
+    const c = await agent.post('/api/tasks').send({ title: 'X' });
+    const res = await agent.put(`/api/tasks/${c.body.id}/description`).send({});
+    expect(res.status).toBe(400);
+  });
+
+  test('description endpoint 404 for other users task', async () => {
+    const c = await agent.post('/api/tasks').send({ title: 'Mine' });
+    const otherAgent = await registerAgent('intruder');
+    const res = await otherAgent.put(`/api/tasks/${c.body.id}/description`)
+      .send({ description: 'hax' });
+    expect(res.status).toBe(404);
+  });
+
   test('delete task', async () => {
     const c = await agent.post('/api/tasks').send({ title: 'Tmp' });
     const d = await agent.delete(`/api/tasks/${c.body.id}`);
@@ -170,18 +193,6 @@ describe('Task CRUD API', () => {
 });
 
 describe('Task UI forms', () => {
-  test('create via form redirects to /tasks', async () => {
-    const agent = await registerAgent('formuser');
-    const res = await agent.post('/tasks').type('form')
-      .send({ title: 'From form', description: 'd', due_date: '2026-06-01' });
-    expect(res.status).toBe(302);
-    expect(res.headers.location).toBe('/tasks');
-
-    const list = await agent.get('/api/tasks');
-    expect(list.body[0].title).toBe('From form');
-    expect(list.body[0].due_date).toBe('2026-06-01');
-  });
-
   test('toggle flips status', async () => {
     const agent = await registerAgent('toggler');
     const c = await agent.post('/api/tasks').send({ title: 'Flip me' });

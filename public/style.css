@@ -149,7 +149,31 @@ button.link { background: none; border: none; color: var(--primary); padding: 0;
 .task-done .badge { background: #dcfce7; color: var(--success); }
 
 .muted { color: var(--muted); }
-.small { font-size: 0.8rem; }
+.small { font-size: 0.8rem; padding: 0.25rem 0.55rem; }
+
+.hidden { display: none !important; }
+
+.desc-view { display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; }
+.desc-text { word-break: break-word; }
+.desc-empty em { font-style: italic; opacity: 0.7; }
+
+.desc-edit { margin-top: 0.4rem; }
+.desc-input {
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  font-size: 0.95rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: inherit;
+  resize: vertical;
+}
+.desc-edit-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+.edit-desc-btn { font-size: 0.8rem; }
 
 .alert {
   padding: 0.6rem 0.8rem;
