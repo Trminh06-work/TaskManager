@@ -153,10 +153,14 @@ pipeline {
           IMAGE_NAME=${IMAGE_NAME} IMAGE_TAG=${env.TAG} \\
             docker compose -p taskmanager-staging \\
               -f infra/docker-compose.staging.yml up -d --remove-orphans
-          for i in 1 2 3 4 5 6; do
-            curl -fsS http://host.docker.internal:3001/api/health && break || sleep 2
+          for i in 1 2 3 4 5 6 7 8; do
+            if docker exec taskmanager-staging wget -qO- http://localhost:3000/api/health; then
+              break
+            fi
+            echo "attempt \$i: not ready"
+            sleep 2
           done
-          curl -fsS http://host.docker.internal:3001/api/health
+          docker exec taskmanager-staging wget -qO- http://localhost:3000/api/health
         """
       }
       post {
@@ -192,10 +196,14 @@ pipeline {
           IMAGE_NAME=${IMAGE_NAME} IMAGE_TAG=${env.REL_TAG} \\
             docker compose -p taskmanager-production \\
               -f infra/docker-compose.production.yml up -d --remove-orphans
-          for i in 1 2 3 4 5 6; do
-            curl -fsS http://host.docker.internal:3000/api/health && break || sleep 2
+          for i in 1 2 3 4 5 6 7 8; do
+            if docker exec taskmanager-production wget -qO- http://localhost:3000/api/health; then
+              break
+            fi
+            echo "attempt \$i: not ready"
+            sleep 2
           done
-          curl -fsS http://host.docker.internal:3000/api/health
+          docker exec taskmanager-production wget -qO- http://localhost:3000/api/health
         """
         withCredentials([usernamePassword(credentialsId: 'github-pat',
                                           usernameVariable: 'GH_USER',
@@ -213,15 +221,17 @@ pipeline {
     stage('Monitoring') {
       steps {
         sh '''
-          HOST=host.docker.internal
-          # 1. Production app exposes Prometheus metrics
-          curl -fsS "http://${HOST}:3000/metrics" | grep -q http_request_duration_seconds
-          # 2. Prometheus is healthy and scraping production
-          curl -fsS "http://${HOST}:9090/-/ready"
-          curl -fsS "http://${HOST}:9090/api/v1/targets?state=active" \
+          # 1. Production app exposes Prometheus metrics (checked from inside the app container)
+          docker exec taskmanager-production wget -qO- http://localhost:3000/metrics \
+            | grep -q http_request_duration_seconds
+          # 2. Prometheus is healthy and is scraping production (checked from inside prometheus container)
+          docker exec prometheus wget -qO- http://localhost:9090/-/ready
+          docker exec prometheus wget -qO- "http://localhost:9090/api/v1/targets?state=active" \
             | grep -E '"health":"up"' > /dev/null
           # 3. Generate some traffic so metrics are non-zero in dashboards
-          for i in $(seq 1 20); do curl -s "http://${HOST}:3000/api/health" > /dev/null; done
+          for i in $(seq 1 20); do
+            docker exec taskmanager-production wget -qO- http://localhost:3000/api/health > /dev/null || true
+          done
           echo "Monitoring verified: metrics exposed, Prometheus scraping up."
         '''
       }
