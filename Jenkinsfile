@@ -151,7 +151,8 @@ pipeline {
         }
         sh """
           IMAGE_NAME=${IMAGE_NAME} IMAGE_TAG=${env.TAG} \\
-            docker compose -f infra/docker-compose.staging.yml up -d --remove-orphans
+            docker compose -p taskmanager-staging \\
+              -f infra/docker-compose.staging.yml up -d --remove-orphans
           for i in 1 2 3 4 5 6; do
             curl -fsS http://host.docker.internal:3001/api/health && break || sleep 2
           done
@@ -163,7 +164,8 @@ pipeline {
           sh """
             echo 'Rolling back staging to ${env.PREV_TAG}'
             IMAGE_NAME=${IMAGE_NAME} IMAGE_TAG=${env.PREV_TAG} \\
-              docker compose -f infra/docker-compose.staging.yml up -d || true
+              docker compose -p taskmanager-staging \\
+                -f infra/docker-compose.staging.yml up -d || true
           """
         }
       }
@@ -188,7 +190,8 @@ pipeline {
         }
         sh """
           IMAGE_NAME=${IMAGE_NAME} IMAGE_TAG=${env.REL_TAG} \\
-            docker compose -f infra/docker-compose.production.yml up -d --remove-orphans
+            docker compose -p taskmanager-production \\
+              -f infra/docker-compose.production.yml up -d --remove-orphans
           for i in 1 2 3 4 5 6; do
             curl -fsS http://host.docker.internal:3000/api/health && break || sleep 2
           done
