@@ -1,0 +1,78 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 0,
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Up status",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "targets": [{ "expr": "up{job=\"taskmanager\"}", "legendFormat": "{{env}}" }],
+      "options": { "colorMode": "background", "graphMode": "none" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Request rate (req/s) by env",
+      "gridPos": { "h": 8, "w": 12, "x": 6, "y": 0 },
+      "targets": [{
+        "expr": "sum by (env) (rate(http_request_duration_seconds_count[1m]))",
+        "legendFormat": "{{env}}"
+      }]
+    },
+    {
+      "type": "timeseries",
+      "title": "Error rate (5xx %) by env",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [{
+        "expr": "100 * sum by (env) (rate(http_request_duration_seconds_count{code=~\"5..\"}[5m])) / sum by (env) (rate(http_request_duration_seconds_count[5m]))",
+        "legendFormat": "{{env}}"
+      }],
+      "fieldConfig": { "defaults": { "unit": "percent" } }
+    },
+    {
+      "type": "timeseries",
+      "title": "p95 latency (s) by env",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [{
+        "expr": "histogram_quantile(0.95, sum by (env, le) (rate(http_request_duration_seconds_bucket[5m])))",
+        "legendFormat": "{{env}}"
+      }],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    },
+    {
+      "type": "timeseries",
+      "title": "Node.js heap used (bytes)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "targets": [{
+        "expr": "nodejs_heap_size_used_bytes",
+        "legendFormat": "{{env}}"
+      }],
+      "fieldConfig": { "defaults": { "unit": "bytes" } }
+    },
+    {
+      "type": "timeseries",
+      "title": "Process CPU (s/s)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "targets": [{
+        "expr": "rate(process_cpu_seconds_total[1m])",
+        "legendFormat": "{{env}}"
+      }]
+    }
+  ],
+  "refresh": "15s",
+  "schemaVersion": 38,
+  "tags": ["taskmanager"],
+  "templating": { "list": [] },
+  "time": { "from": "now-30m", "to": "now" },
+  "title": "Task Manager — Overview",
+  "uid": "taskmanager-overview",
+  "version": 1
+}

@@ -2,6 +2,7 @@ const express = require('express');
 const session = require('express-session');
 const path = require('path');
 const { initDb } = require('./src/db');
+const metrics = require('./src/metrics');
 const authRoutes = require('./src/routes/auth');
 const taskRoutes = require('./src/routes/tasks');
 const apiRoutes = require('./src/routes/api');
@@ -25,6 +26,8 @@ function createApp() {
     res.locals.user = req.session.user || null;
     next();
   });
+
+  metrics.register(app);
 
   app.use('/', authRoutes);
   app.use('/tasks', taskRoutes);

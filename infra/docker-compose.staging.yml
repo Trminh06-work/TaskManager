@@ -1,0 +1,25 @@
+services:
+  app-staging:
+    image: ${IMAGE_NAME:-trminh06/taskmanager}:${IMAGE_TAG:-ci}
+    container_name: taskmanager-staging
+    environment:
+      NODE_ENV: staging
+      PORT: "3000"
+      SESSION_SECRET: ${STAGING_SESSION_SECRET:-staging-secret-change-me}
+      DB_PATH: /app/data/app.db
+    ports:
+      - "3001:3000"
+    volumes:
+      - staging_data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    labels:
+      monitoring: "true"
+      environment: "staging"
+
+volumes:
+  staging_data:

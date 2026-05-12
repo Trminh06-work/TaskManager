@@ -1,0 +1,25 @@
+services:
+  app-production:
+    image: ${IMAGE_NAME:-trminh06/taskmanager}:${IMAGE_TAG:-latest}
+    container_name: taskmanager-production
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      SESSION_SECRET: ${PROD_SESSION_SECRET:-CHANGE-ME-IN-PRODUCTION}
+      DB_PATH: /app/data/app.db
+    ports:
+      - "3000:3000"
+    volumes:
+      - prod_data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    labels:
+      monitoring: "true"
+      environment: "production"
+
+volumes:
+  prod_data:
