@@ -176,7 +176,15 @@ pipeline {
     }
 
     stage('Release') {
-      when { branch 'main' }
+      // Run on main. Supports both Pipeline (uses GIT_BRANCH) and Multibranch (uses BRANCH_NAME) jobs.
+      // Defaults to running if neither is set (single-branch Pipeline default).
+      when {
+        anyOf {
+          branch 'main'
+          expression { env.GIT_BRANCH == 'origin/main' || env.GIT_BRANCH == 'main' }
+          expression { env.BRANCH_NAME == null && env.GIT_BRANCH == null }
+        }
+      }
       steps {
         withCredentials([usernamePassword(credentialsId: 'dockerhub-creds',
                                           usernameVariable: 'DH_USER',
