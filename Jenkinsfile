@@ -6,10 +6,6 @@ pipeline {
     REPORTS    = 'reports'
   }
 
-  triggers {
-    pollSCM('H/2 * * * *')
-  }
-
   options {
     timestamps()
     timeout(time: 30, unit: 'MINUTES')
@@ -41,8 +37,8 @@ pipeline {
         sh "rm -rf ${REPORTS} coverage && mkdir -p ${REPORTS} coverage"
         sh """
           docker run --rm \\
-            -v \$PWD/${REPORTS}:/app/reports \\
-            -v \$PWD/coverage:/app/coverage \\
+            -v "\$PWD/${REPORTS}":/app/reports \\
+            -v "\$PWD/coverage":/app/coverage \\
             ${IMAGE_NAME}:test-${env.TAG}
         """
       }
@@ -62,7 +58,7 @@ pipeline {
             docker run --rm \
               -e SONAR_HOST_URL \
               -e SONAR_TOKEN \
-              -v $PWD:/usr/src \
+              -v "$PWD":/usr/src \
               sonarsource/sonar-scanner-cli:latest
           '''
         }
@@ -77,7 +73,7 @@ pipeline {
         stage('npm audit') {
           steps {
             sh """
-              docker run --rm -v \$PWD:/app -w /app node:22-alpine sh -c '
+              docker run --rm -v "\$PWD":/app -w /app node:22-alpine sh -c '
                 npm ci --include=dev --no-fund --no-audit > /dev/null 2>&1
                 npm audit --audit-level=high --json
               ' > ${REPORTS}/npm-audit.json || true
@@ -104,7 +100,7 @@ pipeline {
             sh """
               docker run --rm \\
                 -v /var/run/docker.sock:/var/run/docker.sock \\
-                -v \$PWD/${REPORTS}:/reports \\
+                -v "\$PWD/${REPORTS}":/reports \\
                 aquasec/trivy:latest image \\
                 --severity HIGH,CRITICAL --exit-code 1 --no-progress \\
                 --format json --output /reports/trivy.json \\
