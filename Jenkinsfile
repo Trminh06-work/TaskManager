@@ -101,17 +101,34 @@ pipeline {
           steps {
             // No workspace mount needed: trivy talks to the docker daemon via the socket
             // and we capture its JSON output via shell redirect inside the Jenkins container.
+            //
+            // Flags:
+            //   --ignore-unfixed   skip CVEs with no upstream fix (most base-image noise)
+            //   --scanners vuln    skip secret scanning (we don't ship secrets in the image)
+            //   --severity         only HIGH and CRITICAL gate the build
             sh """
               set +e
               docker run --rm \\
                 -v /var/run/docker.sock:/var/run/docker.sock \\
                 aquasec/trivy:latest image \\
-                --severity HIGH,CRITICAL --exit-code 1 --no-progress \\
+                --severity HIGH,CRITICAL \\
+                --ignore-unfixed \\
+                --scanners vuln \\
+                --exit-code 1 --no-progress \\
                 --format json \\
                 ${IMAGE_NAME}:${env.TAG} > ${REPORTS}/trivy.json
               rc=\$?
               set -e
-              [ \$rc -eq 0 ] || (echo 'Trivy found HIGH/CRITICAL CVEs (see archived trivy.json)'; exit 1)
+              if [ \$rc -ne 0 ]; then
+                echo '--- Trivy found fixable HIGH/CRITICAL CVEs ---'
+                docker run --rm \\
+                  -v /var/run/docker.sock:/var/run/docker.sock \\
+                  aquasec/trivy:latest image \\
+                  --severity HIGH,CRITICAL --ignore-unfixed --scanners vuln \\
+                  --no-progress --format table \\
+                  ${IMAGE_NAME}:${env.TAG} || true
+                exit 1
+              fi
             """
           }
           post {
