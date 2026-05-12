@@ -2,7 +2,7 @@ pipeline {
   agent any
 
   environment {
-    IMAGE_NAME = 'trminh06/taskmanager'
+    IMAGE_NAME = 'trminh006/taskmanager'
     REPORTS    = 'reports'
   }
 

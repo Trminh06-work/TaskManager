@@ -101,7 +101,7 @@ Create a Pipeline job pointing at the GitHub repo, branch `main`, "Pipeline scri
 
 ### Updating `IMAGE_NAME`
 
-Edit `Jenkinsfile` line `IMAGE_NAME = 'trminh06/taskmanager'` to match your Docker Hub repo.
+Edit `Jenkinsfile` line `IMAGE_NAME = 'trminh006/taskmanager'` to match your Docker Hub repo.
 
 ### Architecture note
 

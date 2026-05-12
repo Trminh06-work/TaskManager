@@ -1,6 +1,6 @@
 services:
   app-production:
-    image: ${IMAGE_NAME:-trminh06/taskmanager}:${IMAGE_TAG:-latest}
+    image: ${IMAGE_NAME:-trminh006/taskmanager}:${IMAGE_TAG:-latest}
     container_name: taskmanager-production
     environment:
       NODE_ENV: production

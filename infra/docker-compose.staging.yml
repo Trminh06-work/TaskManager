@@ -1,6 +1,6 @@
 services:
   app-staging:
-    image: ${IMAGE_NAME:-trminh06/taskmanager}:${IMAGE_TAG:-ci}
+    image: ${IMAGE_NAME:-trminh006/taskmanager}:${IMAGE_TAG:-ci}
     container_name: taskmanager-staging
     environment:
       NODE_ENV: staging
