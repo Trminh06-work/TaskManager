@@ -35,12 +35,16 @@ pipeline {
     stage('Test') {
       steps {
         sh "rm -rf ${REPORTS} coverage && mkdir -p ${REPORTS} coverage"
-        sh """
-          docker run --rm \\
-            -v "\$PWD/${REPORTS}":/app/reports \\
-            -v "\$PWD/coverage":/app/coverage \\
-            ${IMAGE_NAME}:test-${env.TAG}
-        """
+        script {
+          docker.image("${IMAGE_NAME}:test-${env.TAG}").inside('-u root --entrypoint=""') {
+            sh '''
+              cd /app
+              DB_PATH=:memory: NODE_ENV=test npm run test:coverage
+              cp -r /app/reports/. "${WORKSPACE}/reports/" 2>/dev/null || true
+              cp -r /app/coverage/. "${WORKSPACE}/coverage/" 2>/dev/null || true
+            '''
+          }
+        }
       }
       post {
         always {
@@ -54,13 +58,11 @@ pipeline {
     stage('Code Quality') {
       steps {
         withSonarQubeEnv('SonarCloud') {
-          sh '''
-            docker run --rm \
-              -e SONAR_HOST_URL \
-              -e SONAR_TOKEN \
-              -v "$PWD":/usr/src \
-              sonarsource/sonar-scanner-cli:latest
-          '''
+          script {
+            docker.image('sonarsource/sonar-scanner-cli:latest').inside('-u root --entrypoint=""') {
+              sh 'sonar-scanner -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.token=$SONAR_AUTH_TOKEN'
+            }
+          }
         }
         timeout(time: 5, unit: 'MINUTES') {
           waitForQualityGate abortPipeline: true
@@ -72,22 +74,22 @@ pipeline {
       parallel {
         stage('npm audit') {
           steps {
-            sh """
-              docker run --rm -v "\$PWD":/app -w /app node:22-alpine sh -c '
-                npm ci --include=dev --no-fund --no-audit > /dev/null 2>&1
-                npm audit --audit-level=high --json
-              ' > ${REPORTS}/npm-audit.json || true
-            """
-            sh '''
-              node -e "
-                const fs = require('fs');
-                const a = JSON.parse(fs.readFileSync('reports/npm-audit.json','utf8'));
-                const m = (a.metadata && a.metadata.vulnerabilities) || {};
-                console.log('Vulnerabilities:', JSON.stringify(m));
-                const bad = (m.high || 0) + (m.critical || 0);
-                if (bad > 0) { console.error('FAIL: HIGH/CRITICAL vulns present'); process.exit(1); }
-              "
-            '''
+            script {
+              docker.image('node:22-alpine').inside('-u root') {
+                sh """
+                  npm ci --include=dev --no-fund --no-audit > /dev/null 2>&1
+                  npm audit --audit-level=high --json > ${REPORTS}/npm-audit.json || true
+                  node -e "
+                    const fs = require('fs');
+                    const a = JSON.parse(fs.readFileSync('${REPORTS}/npm-audit.json','utf8'));
+                    const m = (a.metadata && a.metadata.vulnerabilities) || {};
+                    console.log('Vulnerabilities:', JSON.stringify(m));
+                    const bad = (m.high || 0) + (m.critical || 0);
+                    if (bad > 0) { console.error('FAIL: HIGH/CRITICAL vulns present'); process.exit(1); }
+                  "
+                """
+              }
+            }
           }
           post {
             always {
@@ -97,14 +99,19 @@ pipeline {
         }
         stage('Trivy image scan') {
           steps {
+            // No workspace mount needed: trivy talks to the docker daemon via the socket
+            // and we capture its JSON output via shell redirect inside the Jenkins container.
             sh """
+              set +e
               docker run --rm \\
                 -v /var/run/docker.sock:/var/run/docker.sock \\
-                -v "\$PWD/${REPORTS}":/reports \\
                 aquasec/trivy:latest image \\
                 --severity HIGH,CRITICAL --exit-code 1 --no-progress \\
-                --format json --output /reports/trivy.json \\
-                ${IMAGE_NAME}:${env.TAG}
+                --format json \\
+                ${IMAGE_NAME}:${env.TAG} > ${REPORTS}/trivy.json
+              rc=\$?
+              set -e
+              [ \$rc -eq 0 ] || (echo 'Trivy found HIGH/CRITICAL CVEs (see archived trivy.json)'; exit 1)
             """
           }
           post {
