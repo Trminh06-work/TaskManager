@@ -15,7 +15,15 @@ FROM node:22-alpine AS release
 WORKDIR /app
 ENV NODE_ENV=production
 COPY package*.json ./
-RUN npm ci --omit=dev --no-fund --no-audit
+RUN npm ci --omit=dev --no-fund --no-audit \
+ && rm -rf /usr/local/lib/node_modules/npm \
+           /usr/local/lib/node_modules/corepack \
+           /usr/local/bin/npm \
+           /usr/local/bin/npx \
+           /usr/local/bin/corepack \
+           /opt/yarn-* \
+           /root/.npm \
+           package-lock.json
 COPY server.js ./
 COPY src ./src
 COPY views ./views
