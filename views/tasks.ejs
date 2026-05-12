@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Tasks | Task Manager</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>Task Manager</h1>
+    <div class="topbar-right">
+      <span class="muted">Hi, <%= user.username %></span>
+      <form method="POST" action="/logout" class="inline">
+        <button type="submit" class="link">Logout</button>
+      </form>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <h2>New task</h2>
+      <form method="POST" action="/tasks" class="task-form">
+        <input name="title" placeholder="Title" required>
+        <input name="description" placeholder="Description (optional)">
+        <input name="due_date" type="date">
+        <button type="submit" class="primary">Add</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Your tasks (<%= tasks.length %>)</h2>
+      <% if (tasks.length === 0) { %>
+        <p class="muted">No tasks yet. Add one above.</p>
+      <% } %>
+      <ul class="task-list">
+        <% tasks.forEach(function(t) { %>
+          <li class="task <%= t.status === 'done' ? 'task-done' : '' %>">
+            <div class="task-main">
+              <form method="POST" action="/tasks/<%= t.id %>/toggle" class="inline">
+                <button type="submit" class="toggle" aria-label="Toggle status">
+                  <%= t.status === 'done' ? '☑' : '☐' %>
+                </button>
+              </form>
+              <div class="task-body">
+                <strong><%= t.title %></strong>
+                <% if (t.description) { %><div class="muted"><%= t.description %></div><% } %>
+                <% if (t.due_date) { %><div class="muted small">Due: <%= t.due_date %></div><% } %>
+              </div>
+            </div>
+            <div class="task-actions">
+              <span class="badge"><%= t.status %></span>
+              <form method="POST" action="/tasks/<%= t.id %>/delete" class="inline"
+                    onsubmit="return confirm('Delete this task?');">
+                <button type="submit" class="danger">Delete</button>
+              </form>
+            </div>
+          </li>
+        <% }); %>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>
